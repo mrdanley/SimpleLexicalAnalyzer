@@ -1,0 +1,220 @@
+import java.io.*;
+import java.util.*;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.lr_parser;
+import java_cup.runtime.Scanner;
+
+parser code {:
+    Lexer lexer;
+    parser(Lexer lexer){
+    	this.lexer = lexer;
+    	makeFile();
+    }
+    public void makeFile(){
+      try (BufferedWriter buffWriter = new BufferedWriter(new FileWriter("outputFile.txt",false))) {
+        buffWriter.write("");
+        buffWriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    public void editFile(String token){
+      try (BufferedWriter buffWriter = new BufferedWriter(new FileWriter("outputFile.txt",true))) {
+        buffWriter.write(token);
+        buffWriter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    public Symbol parse() throws Exception
+    {
+      //initializations
+      String outputString = "";
+      Symbol left_side_symbol = null;
+      this.action_tab = this.action_table();
+      this.reduce_tab = this.reduce_table();
+      this.production_tab = this.production_table();
+      this.init_actions();
+      this.user_init();
+
+
+      while (!this._done_parsing) {
+        //print shift and reduce actions
+      }
+      editFile(outputString +"\r\n");
+      return left_side_symbol;
+    }
+:}
+
+/* connect to lexer */
+/*
+init with {: scanner.init(); :};
+*/
+scan with {: return lexer.next_token(); :};
+
+
+/* Terminals (tokens returned by the lexer). */
+terminal		t_BOOLEAN, t_ELSE, t_IMPLEMENTS, t_PRINTLN, t_VOID, t_MULTIPLICATION;
+terminal		t_LESSEQUAL, t_NOTEQUAL, t_ASSIGNOP, t_LEFTPAREN, t_LEFTBRACE, t_STRINGCONSTANT;
+terminal		t_BREAK, t_EXTENDS, t_INT, t_READLN, t_WHILE, t_DIVISION, t_GREATER, t_AND;
+terminal		t_SEMICOLON, t_RIGHTPAREN , t_RIGHTBRACE, t_BOOLEANCONSTANT, t_CLASS, t_FOR;
+terminal		t_INTERFACE, t_RETURN ,t_PLUS , t_MOD , t_GREATEREQUAL, t_OR, t_COMMA, t_NO_ELSE;
+terminal		t_LEFTBRACKET, t_INTCONSTANT, t_ID, t_DOUBLE, t_IF, t_NEWARRAY, t_STRING, t_MINUS;
+terminal		t_LESS, t_EQUAL,t_NOT, t_PERIOD,t_RIGHTBRACKET,t_DOUBLECONSTANT,t_UNARYMINUS;
+
+
+/* Non terminals */
+non terminal      Program, Decl, VariableDecl, FunctionDecl, ClassDecl;
+non terminal      InterfaceDecl, Variable, Type, Formals, StmtBlock, Field;
+non terminal      Prototype, Stmt, IfStmt, WhileStmt, ForStmt, BreakStmt;
+non terminal      ReturnStmt, PrintStmt, Expr, Lvalue, Constant, Call, Actuals;
+non terminal      VariableComma, ExtendsZeroOne, ImplementsZeroOne, IdComma;
+non terminal      FieldZeroMore, PrototypeZeroMore, VariableDeclZeroMore;
+non terminal      StmtZeroMore, ExprZeroOne, ExprComma, numActionuals;
+
+
+/* Precedences WHAT TO DO FOR UNARYMINUS*/
+precedence nonassoc t_ASSIGNOP;
+precedence left     t_OR;
+precedence left     t_AND;
+precedence nonassoc t_EQUAL, t_NOTEQUAL;
+precedence nonassoc t_LESS, t_LESSEQUAL, t_GREATER, t_GREATEREQUAL;
+precedence left     t_PLUS, t_MINUS;
+precedence left     t_MULTIPLICATION, t_DIVISION, t_MOD;
+precedence left     t_NOT, t_UNARYMINUS;
+precedence left     t_LEFTBRACKET, t_PERIOD;
+precedence nonassoc t_NO_ELSE;
+precedence nonassoc t_ELSE;
+
+
+/* The grammar rules */
+Program   ::= Program Decl
+            | Decl
+;
+Decl      ::= VariableDecl
+            | FunctionDecl
+            | ClassDecl
+            | InterfaceDecl
+;
+VariableDecl ::= Variable t_SEMICOLON
+;
+Variable ::= Type t_ID
+;
+Type ::= t_INT
+	     | t_DOUBLE
+	     | t_BOOLEAN
+	     | t_STRING
+	     | Type t_LEFTBRACKET t_RIGHTBRACKET
+	     | t_ID
+;
+FunctionDecl ::= Type t_ID t_LEFTPAREN Formals t_RIGHTPAREN StmtBlock
+               | t_VOID t_ID t_LEFTPAREN Formals t_RIGHTPAREN StmtBlock
+;
+Formals ::= VariableComma
+          |
+;
+VariableComma  ::= Variable t_COMMA VariableComma
+                 | Variable
+;
+ClassDecl  ::= t_CLASS t_ID ExtendsZeroOne ImplementsZeroOne t_LEFTBRACE
+               FieldZeroMore t_RIGHTBRACE
+;
+ExtendsZeroOne  ::= t_EXTENDS t_ID
+                  |
+;
+ImplementsZeroOne  ::= t_IMPLEMENTS IdComma
+                     |
+;
+IdComma  ::= t_ID t_COMMA IdComma
+           | t_ID
+;
+FieldZeroMore  ::= Field FieldZeroMore
+                 |
+;
+Field ::= VariableDecl
+	      | FunctionDecl
+;
+InterfaceDecl  ::= t_INTERFACE t_ID t_LEFTBRACE PrototypeZeroMore t_RIGHTBRACE
+;
+PrototypeZeroMore  ::= Prototype PrototypeZeroMore
+                     |
+;
+Prototype  ::= Type t_ID t_LEFTPAREN Formals t_RIGHTPAREN t_SEMICOLON
+		         | t_VOID t_ID t_LEFTPAREN Formals t_RIGHTPAREN t_SEMICOLON
+;
+StmtBlock ::= t_LEFTBRACE VariableDeclZeroMore StmtZeroMore t_RIGHTBRACE
+;
+VariableDeclZeroMore  ::= VariableDecl VariableDeclZeroMore
+                        |
+;
+StmtZeroMore  ::= Stmt StmtZeroMore
+                |
+;
+Stmt  ::= ExprZeroOne t_SEMICOLON
+	      | IfStmt
+	      | WhileStmt
+	      | ForStmt
+	      | BreakStmt
+	      | ReturnStmt
+	      | PrintStmt
+	      | StmtBlock
+;
+ExprZeroOne  ::= Expr
+               |
+;
+IfStmt ::= t_IF t_LEFTPAREN  Expr t_RIGHTPAREN Stmt %prec t_NO_ELSE
+         | t_IF t_LEFTPAREN  Expr t_RIGHTPAREN Stmt t_ELSE Stmt
+;
+WhileStmt ::= t_WHILE t_LEFTPAREN Expr t_RIGHTPAREN Stmt
+;
+ForStmt ::= t_FOR t_LEFTPAREN ExprZeroOne t_SEMICOLON Expr t_SEMICOLON
+            ExprZeroOne t_RIGHTPAREN Stmt
+;
+BreakStmt ::= t_BREAK t_SEMICOLON
+;
+ReturnStmt ::= t_RETURN ExprZeroOne t_SEMICOLON
+;
+PrintStmt ::= t_PRINTLN t_LEFTPAREN ExprComma t_RIGHTPAREN t_SEMICOLON
+;
+ExprComma  ::= Expr t_COMMA ExprComma
+            | Expr
+;
+Expr ::= Lvalue t_ASSIGNOP Expr
+	     | Constant
+	     | Lvalue
+	     | Call
+	     | t_LEFTPAREN Expr t_RIGHTPAREN
+	     | Expr t_PLUS Expr
+       | Expr t_MINUS Expr %prec t_UNARYMINUS
+	     | Expr t_MULTIPLICATION Expr
+	     | Expr t_DIVISION Expr
+	     | Expr t_MOD Expr
+	     | Expr t_LESS Expr
+	     | Expr t_LESSEQUAL Expr
+	     | Expr t_GREATER Expr
+	     | Expr t_GREATEREQUAL Expr
+	     | Expr t_EQUAL Expr
+	     | Expr t_NOTEQUAL Expr
+	     | Expr t_AND Expr
+ 	     | Expr t_OR Expr
+	     | t_NOT Expr
+       | t_READLN t_LEFTPAREN t_RIGHTPAREN
+       | t_NEWARRAY t_LEFTPAREN t_INTCONSTANT t_COMMA Type t_RIGHTPAREN
+;
+
+Lvalue ::= t_ID
+	       | Lvalue t_LEFTBRACKET Expr t_RIGHTBRACKET
+	       | Lvalue t_PERIOD t_ID
+;
+Call ::= t_ID t_LEFTPAREN numActionuals t_RIGHTPAREN
+	     | t_ID t_PERIOD t_ID t_LEFTPAREN numActionuals t_RIGHTPAREN
+;
+Actuals ::= ExprComma
+	        |
+;
+Constant ::= t_INTCONSTANT
+	         | t_DOUBLECONSTANT
+	         | t_STRINGCONSTANT
+	         | t_BOOLEANCONSTANT
+;
